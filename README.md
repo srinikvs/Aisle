@@ -2,11 +2,32 @@
 
 Voice grocery / multi-list shopping assistant. Speak a need once; keep **Grocery**, **School supplies**, **Shopping**, and **Travel** as their own lists. Walking into Costco, Publix, or Office Depot? Aisle pulls what that store can cover.
 
-Play at `https://playadda.duckdns.org/aisle/` after Jenkins deploy.
-Vite `base` is **`/aisle/`**.
+## Hosts
 
-Jenkins: `npm ci` → `npm run build` → rsync **`dist/`**.
-Root `index.html` is the Vite source (`/src/main.tsx` only). Do not commit hashed `/aisle/assets/` paths.
+| Host | URL | Vite `base` | Jenkins build |
+| --- | --- | --- | --- |
+| Playadda | `https://playadda.duckdns.org/aisle/` | `/aisle/` (default) | `npm ci` → `npm run build` |
+| Sarukulu | `https://sarukulu.duckdns.org/` | `/` | `npm ci` → `BASE_PATH=/ npm run build` |
+
+Jenkins then rsyncs **`dist/`**. Root `index.html` is the Vite source (`/src/main.tsx` only). Do not commit hashed asset paths.
+
+`npm run build` still writes `/aisle/`-prefixed assets by default so Playadda is unchanged. For Sarukulu (site root), pass **`BASE`** in either of these ways:
+
+```bash
+# Env (picked up by vite.config.ts)
+BASE_PATH=/ npm run build
+
+# Vite CLI (overrides config.base)
+npm run build -- --base /
+# or
+npm run build:root
+```
+
+Local preview of a root build: `npm run preview:root` after `npm run build:root`.
+
+## v1.0.1
+
+1. Vite `base` is configurable at build time (`BASE_PATH` or `vite --base`) so the same app deploys at Playadda `/aisle/` and Sarukulu site root.
 
 ## v1.0.0
 
@@ -46,8 +67,11 @@ Client-only Vite 6 + React 19 + TypeScript. No API keys. Speech uses the browser
 ```bash
 npm install
 npm test
-npm run dev      # http://localhost:5173/aisle/
-npm run build    # writes dist/ (Jenkins rsyncs this)
+npm run dev            # http://localhost:5173/aisle/
+BASE_PATH=/ npm run dev
+                       # http://localhost:5173/
+npm run build          # dist/ with /aisle/ assets (Playadda)
+npm run build:root     # dist/ with / assets (Sarukulu)
 ```
 
 ## License
