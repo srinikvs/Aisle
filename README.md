@@ -29,7 +29,7 @@ Local preview of a root build: `npm run preview:root` after `npm run build:root`
 
 1. Email + password accounts. Sign up / sign in from the SPA.
 2. Shared **household**: the first adult creates it; adults invite others by email as **adult** or **kid**.
-3. **Kids** can add needs (voice or type) and see only items they added. They cannot open household lists or store runs.
+3. **Kids** can add needs (voice or type) and see only items they added. They cannot open household lists. They never see **Store runs** (no Costco / Publix / Office Depot tab or views).
 4. **Adults** keep the current Aisle behavior (four lists, Costco / Publix / Office Depot, voice, checkoffs) on the shared household data.
 5. Optional import of this device’s old `localStorage` (`aisle-v1`) when creating a household.
 6. Cloud persistence via **Supabase** (Auth + Postgres + RLS). Without env vars the app uses **local demo mode** (accounts stay on this device).
@@ -50,7 +50,7 @@ Local preview of a root build: `npm run preview:root` after `npm run build:root`
 | Role | What they can do |
 | --- | --- |
 | Adult | Full lists + store runs on the shared household. Invite / revoke by email. |
-| Kid | Add items. See and check off only their own items. No Family screen, no other lists, no store runs. |
+| Kid | Add items. See and check off only their own items. No Family screen, no other lists, **no Store runs** (Costco / Publix / Office Depot UI is hidden entirely). |
 
 Invite flow:
 

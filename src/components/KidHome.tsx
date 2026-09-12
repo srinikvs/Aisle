@@ -33,12 +33,11 @@ export function KidHome({
         <p className="tagline">Add what you need. Only you see this list.</p>
       </header>
       <AccountBar session={session} onSignOut={onSignOut} />
-      <NeedComposer onAdd={onAdd} confirmLabel="Add my items" />
+      <NeedComposer onAdd={onAdd} confirmLabel="Add my items" hideStores />
       {error ? <p className="banner">{error}</p> : null}
 
       <p className="kid-note">
-        Grown-ups see your items on the family lists. You cannot open their lists
-        or store runs.
+        Grown-ups see your items on the family lists. You only see what you add.
       </p>
 
       {open.length === 0 && done.length === 0 ? (

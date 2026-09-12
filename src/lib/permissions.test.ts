@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { addedByLabel, canManageHousehold, canMutateNeed, needsForViewer } from "./permissions.ts";
+import {
+  addedByLabel,
+  canBrowseHousehold,
+  canBrowseStoreRuns,
+  canManageHousehold,
+  canMutateNeed,
+  needsForViewer,
+} from "./permissions.ts";
 import type { Need } from "../types.ts";
 
 function need(partial: Partial<Need> & Pick<Need, "id" | "addedBy">): Need {
@@ -48,6 +55,14 @@ describe("household helpers", () => {
     assert.equal(canManageHousehold("adult"), true);
     assert.equal(canManageHousehold("kid"), false);
     assert.equal(canManageHousehold(null), false);
+  });
+
+  it("kids never browse household lists or store runs", () => {
+    assert.equal(canBrowseHousehold("adult"), true);
+    assert.equal(canBrowseHousehold("kid"), false);
+    assert.equal(canBrowseStoreRuns("adult"), true);
+    assert.equal(canBrowseStoreRuns("kid"), false);
+    assert.equal(canBrowseStoreRuns(null), false);
   });
 
   it("labels another member’s item for adults", () => {

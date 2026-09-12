@@ -42,7 +42,8 @@ export function FamilyScreen({
         <h2>Family</h2>
       </div>
       <p className="screen-blurb">
-        {householdName} — adults see every list. Kids only see items they add.
+        {householdName} — adults see every list and store run. Kids only see
+        items they add — no Store runs.
       </p>
 
       <div className="section">People</div>
@@ -79,8 +80,8 @@ export function FamilyScreen({
         <label>
           Role
           <select value={role} onChange={(event) => setRole(event.target.value as Role)}>
-            <option value="kid">Kid — add items, see only their own</option>
-            <option value="adult">Adult — full household lists</option>
+            <option value="kid">Kid — add items, see only their own, no Store runs</option>
+            <option value="adult">Adult — full lists and store runs</option>
           </select>
         </label>
         {error ? <p className="banner">{error}</p> : null}

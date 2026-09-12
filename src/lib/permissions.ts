@@ -20,6 +20,11 @@ export function canBrowseHousehold(role: Role | null): boolean {
   return role === "adult";
 }
 
+/** Locked: kids never see Costco / Publix / Office Depot store-run UI. */
+export function canBrowseStoreRuns(role: Role | null): boolean {
+  return role === "adult";
+}
+
 export function canMutateNeed(
   need: Need | undefined,
   viewerId: string,

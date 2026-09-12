@@ -47,6 +47,8 @@ export function App() {
     );
   }
 
+  // Locked: kids never mount AdultHome, so they never see Store runs
+  // (Costco / Publix / Office Depot) or household lists.
   if (aisle.session.role === "kid") {
     return (
       <KidHome

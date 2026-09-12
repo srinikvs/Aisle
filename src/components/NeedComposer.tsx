@@ -13,10 +13,11 @@ interface NeedComposerProps {
   onAdd: (drafts: DraftNeed[]) => void;
   confirmLabel?: string;
   showBar?: boolean;
+  hideStores?: boolean;
 }
 
 export const NeedComposer = forwardRef<NeedComposerHandle, NeedComposerProps>(
-  function NeedComposer({ onAdd, confirmLabel, showBar = true }, ref) {
+  function NeedComposer({ onAdd, confirmLabel, showBar = true, hideStores = false }, ref) {
     const [drafts, setDrafts] = useState<DraftNeed[] | null>(null);
     const [typing, setTyping] = useState(false);
     const [typeValue, setTypeValue] = useState("");
@@ -147,6 +148,7 @@ export const NeedComposer = forwardRef<NeedComposerHandle, NeedComposerProps>(
           <ConfirmSheet
             drafts={drafts}
             confirmLabel={confirmLabel}
+            hideStores={hideStores}
             onChange={setDrafts}
             onCancel={() => setDrafts(null)}
             onConfirm={() => {
