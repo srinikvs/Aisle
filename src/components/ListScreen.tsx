@@ -12,6 +12,7 @@ interface ListScreenProps {
   onMove: (id: string, listId: ListId) => void;
   onRemove: (id: string) => void;
   onTyped: (text: string) => void;
+  addedByName?: (need: Need) => string | null;
 }
 
 export function ListScreen({
@@ -22,6 +23,7 @@ export function ListScreen({
   onMove,
   onRemove,
   onTyped,
+  addedByName,
 }: ListScreenProps) {
   const list = listMeta(listId);
   const items = needsForList(listId, needs);
@@ -48,6 +50,7 @@ export function ListScreen({
         <NeedRow
           key={need.id}
           need={need}
+          addedByLabel={addedByName?.(need)}
           onToggle={onToggle}
           onMove={onMove}
           onRemove={onRemove}
@@ -58,6 +61,7 @@ export function ListScreen({
         <NeedRow
           key={need.id}
           need={need}
+          addedByLabel={addedByName?.(need)}
           onToggle={onToggle}
           onMove={onMove}
           onRemove={onRemove}

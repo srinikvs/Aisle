@@ -12,6 +12,7 @@ function need(partial: Partial<Need> & Pick<Need, "listId">): Need {
     pinnedStore: partial.pinnedStore ?? null,
     done: partial.done ?? false,
     createdAt: 1,
+    addedBy: partial.addedBy ?? null,
   };
 }
 

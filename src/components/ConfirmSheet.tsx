@@ -6,6 +6,7 @@ interface ConfirmSheetProps {
   onChange: (drafts: DraftNeed[]) => void;
   onCancel: () => void;
   onConfirm: () => void;
+  confirmLabel?: string;
 }
 
 export function ConfirmSheet({
@@ -13,6 +14,7 @@ export function ConfirmSheet({
   onChange,
   onCancel,
   onConfirm,
+  confirmLabel = "Add to lists",
 }: ConfirmSheetProps) {
   const update = (key: string, patch: Partial<DraftNeed>) => {
     onChange(drafts.map((draft) => (draft.key === key ? { ...draft, ...patch } : draft)));
@@ -79,7 +81,7 @@ export function ConfirmSheet({
             onClick={onConfirm}
             disabled={drafts.every((draft) => !draft.name.trim())}
           >
-            Add to lists
+            {confirmLabel}
           </button>
         </div>
       </div>

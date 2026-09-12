@@ -6,7 +6,7 @@ function item(
   listId: Need["listId"],
   createdAt: number,
 ): Need {
-  return { id, name, listId, pinnedStore: null, done: false, createdAt };
+  return { id, name, listId, pinnedStore: null, done: false, createdAt, addedBy: null };
 }
 
 /** Twelve open needs so store runs are never empty on first launch. */

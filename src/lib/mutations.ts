@@ -10,7 +10,11 @@ export function toggleNeed(state: AppState, id: string): AppState {
   };
 }
 
-export function addDrafts(state: AppState, drafts: readonly DraftNeed[]): AppState {
+export function addDrafts(
+  state: AppState,
+  drafts: readonly DraftNeed[],
+  addedBy: string | null = null,
+): AppState {
   const now = Date.now();
   const incoming: Need[] = drafts
     .map((draft) => ({
@@ -20,6 +24,7 @@ export function addDrafts(state: AppState, drafts: readonly DraftNeed[]): AppSta
       pinnedStore: draft.pinnedStore,
       done: false,
       createdAt: now,
+      addedBy,
     }))
     .filter((need) => need.name.length > 0);
 
