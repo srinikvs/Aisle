@@ -26,5 +26,19 @@ describe("kid store-run lock", () => {
     assert.match(src, /role === "kid"/);
     assert.match(src, /<KidHome/);
     assert.match(src, /never mount AdultHome/);
+    assert.match(src, /pauseReminderDelivery/);
+  });
+
+  it("KidHome never mounts the shopping reminder", () => {
+    const src = source("../components/KidHome.tsx");
+    assert.equal(src.includes("ReminderCard"), false);
+    assert.equal(src.includes("useShoppingReminder"), false);
+    assert.equal(/5pm|notification/i.test(src), false);
+  });
+
+  it("only AdultHome mounts the shopping reminder", () => {
+    const src = source("../components/AdultHome.tsx");
+    assert.match(src, /ReminderCard/);
+    assert.match(src, /showControls=\{home\}/);
   });
 });

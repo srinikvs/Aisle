@@ -25,6 +25,13 @@ npm run build:root
 
 Local preview of a root build: `npm run preview:root` after `npm run build:root`.
 
+## v1.1.1
+
+1. Adults can turn on a **5pm shopping reminder** (local time) to review open items and store runs.
+2. Kids never see the toggle and never get Store-run reminder copy. If a kid signs in on a phone that already had the worker, delivery is paused.
+3. Preference is stored per signed-in adult on this device (`aisle-reminder-v1`). It does not sync through Supabase.
+4. Uses the Notification API plus a small service worker (`sw.js` under Vite `base`). If permission is denied, an in-app banner can still appear when Aisle is open at 5pm.
+
 ## v1.1.0
 
 1. Email + password accounts. Sign up / sign in from the SPA.
@@ -49,8 +56,8 @@ Local preview of a root build: `npm run preview:root` after `npm run build:root`
 
 | Role | What they can do |
 | --- | --- |
-| Adult | Full lists + store runs on the shared household. Invite / revoke by email. |
-| Kid | Add items. See and check off only their own items. No Family screen, no other lists, **no Store runs** (Costco / Publix / Office Depot UI is hidden entirely). |
+| Adult | Full lists + store runs on the shared household. Invite / revoke by email. Optional 5pm shopping reminder. |
+| Kid | Add items. See and check off only their own items. No Family screen, no other lists, **no Store runs** (Costco / Publix / Office Depot UI is hidden entirely). No 5pm store-run reminder. |
 
 Invite flow:
 
@@ -123,13 +130,31 @@ Playadda is the same without `BASE_PATH=/`. If these two variables are missing, 
 
 Pin an item to a store in the confirm sheet if you only want Publix or Office Depot to show it. Costco still sees every open need.
 
+## Daily shopping reminder
+
+Adults see **5pm shopping reminder** on the home screen. **Turn on** asks for notification permission. Around **5:00 PM local**, Aisle reminds you to review open needs and Store runs (Costco / Publix / Office Depot). **Try now** sends a test notification without consuming the daily slot.
+
+Kids never get this control or Store-run wording. The household model is unchanged: reminders are a per-adult, on-device preference, not a Supabase row.
+
+### Limitations
+
+Browsers cannot reliably wake a fully closed tab at 5:00 PM without a push server. The reminder fires when Aisle or its service worker is able to run around 5pm local.
+
+- Allow notifications for the site. If you deny permission, Aisle still keeps the toggle on and shows an in-app banner when the tab is open at or after 5pm (once per local day).
+- A timer runs while the app is open (including a background tab, until the browser suspends it). Opening Aisle after 5pm still delivers that day’s nudge if it has not already fired.
+- The service worker is registered at Vite `base` (`/aisle/sw.js` on Playadda, `/sw.js` on Sarukulu). Installed Chromium PWAs may also get periodic background checks; the clock is not exact.
+- iPhone: add Aisle to the Home Screen and allow notifications there. A regular Safari tab is limited.
+- Closing the browser or signing in as a kid pauses worker delivery. The adult toggle stays saved on that device.
+- `Try now` is the reliable way to confirm the Notification API works on a given phone.
+
 ## Try it
 
 1. Create an adult account and a household (import local lists if offered).
 2. Tap **Tap to speak a need** and say something like “milk, notebooks for school, sunscreen for the trip” — or **Type instead**.
 3. Confirm the sort (move an item to another list or store before adding).
-4. Open **Family** and invite a kid email. Sign out, create that account, and confirm they only see items they add.
-5. Open **Store runs** as an adult and compare Costco vs Publix vs Office Depot.
+4. Turn on **5pm shopping reminder** and allow notifications. Use **Try now** to confirm delivery.
+5. Open **Family** and invite a kid email. Sign out, create that account, and confirm they only see items they add — and no reminder toggle.
+6. Open **Store runs** as an adult and compare Costco vs Publix vs Office Depot.
 
 Allow the microphone when asked. If the browser blocks speech (common in some in-app previews), type from the home pill or any list.
 
