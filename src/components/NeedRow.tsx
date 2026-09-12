@@ -5,6 +5,7 @@ import type { ListId, Need, StoreId } from "../types";
 interface NeedRowProps {
   need: Need;
   showList?: boolean;
+  addedByLabel?: string | null;
   onToggle: (id: string) => void;
   onMove?: (id: string, listId: ListId) => void;
   onPin?: (id: string, storeId: StoreId | null) => void;
@@ -14,6 +15,7 @@ interface NeedRowProps {
 export function NeedRow({
   need,
   showList,
+  addedByLabel,
   onToggle,
   onMove,
   onPin,
@@ -33,10 +35,11 @@ export function NeedRow({
       <div className="need-name">
         <div>{need.name}</div>
         {showList ? (
-          <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>
+          <div className="need-meta">
             {LISTS.find((list) => list.id === need.listId)?.title}
           </div>
         ) : null}
+        {addedByLabel ? <div className="need-meta">Added by {addedByLabel}</div> : null}
       </div>
       <div className="need-tools">
         {onMove ? (

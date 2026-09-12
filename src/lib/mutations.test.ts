@@ -28,4 +28,29 @@ describe("mutations", () => {
     const restored = parseState(JSON.stringify(start));
     assert.deepEqual(restored, start);
   });
+
+  it("accepts pre-account needs without addedBy and stamps the creator on add", () => {
+    const restored = parseState(
+      JSON.stringify({
+        version: 1,
+        needs: [
+          {
+            id: "legacy-1",
+            name: "Milk",
+            listId: "grocery",
+            pinnedStore: null,
+            done: false,
+            createdAt: 1,
+          },
+        ],
+      }),
+    );
+    assert.equal(restored?.needs[0]?.addedBy, null);
+    const next = addDrafts(
+      restored ?? createStarterState(),
+      [{ key: "a", name: "Eggs", listId: "grocery", pinnedStore: null }],
+      "user-1",
+    );
+    assert.equal(next.needs.find((need) => need.name === "Eggs")?.addedBy, "user-1");
+  });
 });

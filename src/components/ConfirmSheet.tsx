@@ -6,6 +6,9 @@ interface ConfirmSheetProps {
   onChange: (drafts: DraftNeed[]) => void;
   onCancel: () => void;
   onConfirm: () => void;
+  confirmLabel?: string;
+  /** Hide Costco / Publix / Office Depot. Kids never see store-run UI. */
+  hideStores?: boolean;
 }
 
 export function ConfirmSheet({
@@ -13,6 +16,8 @@ export function ConfirmSheet({
   onChange,
   onCancel,
   onConfirm,
+  confirmLabel = "Add to lists",
+  hideStores = false,
 }: ConfirmSheetProps) {
   const update = (key: string, patch: Partial<DraftNeed>) => {
     onChange(drafts.map((draft) => (draft.key === key ? { ...draft, ...patch } : draft)));
@@ -27,7 +32,11 @@ export function ConfirmSheet({
         onClick={(event) => event.stopPropagation()}
       >
         <h3 id="confirm-title">Confirm the sort</h3>
-        <p>Move an item to another list or store before adding.</p>
+        <p>
+          {hideStores
+            ? "Move an item to another list before adding."
+            : "Move an item to another list or store before adding."}
+        </p>
         {drafts.map((draft) => (
           <div className="draft" key={draft.key}>
             <input
@@ -50,22 +59,24 @@ export function ConfirmSheet({
                   </option>
                 ))}
               </select>
-              <select
-                aria-label="Store"
-                value={draft.pinnedStore ?? ""}
-                onChange={(event) =>
-                  update(draft.key, {
-                    pinnedStore: (event.target.value || null) as StoreId | null,
-                  })
-                }
-              >
-                <option value="">Any covering store</option>
-                {STORES.map((store) => (
-                  <option key={store.id} value={store.id}>
-                    {store.title}
-                  </option>
-                ))}
-              </select>
+              {hideStores ? null : (
+                <select
+                  aria-label="Store"
+                  value={draft.pinnedStore ?? ""}
+                  onChange={(event) =>
+                    update(draft.key, {
+                      pinnedStore: (event.target.value || null) as StoreId | null,
+                    })
+                  }
+                >
+                  <option value="">Any covering store</option>
+                  {STORES.map((store) => (
+                    <option key={store.id} value={store.id}>
+                      {store.title}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
         ))}
@@ -79,7 +90,7 @@ export function ConfirmSheet({
             onClick={onConfirm}
             disabled={drafts.every((draft) => !draft.name.trim())}
           >
-            Add to lists
+            {confirmLabel}
           </button>
         </div>
       </div>
