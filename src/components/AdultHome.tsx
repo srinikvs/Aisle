@@ -15,6 +15,7 @@ import { AccountBar } from "./AccountBar";
 import { FamilyScreen } from "./FamilyScreen";
 import { ListScreen } from "./ListScreen";
 import { NeedComposer, type NeedComposerHandle } from "./NeedComposer";
+import { ReminderCard } from "./ReminderCard";
 import { StoreScreen } from "./StoreScreen";
 
 type Tab = "lists" | "runs";
@@ -92,6 +93,12 @@ export function AdultHome({
         </>
       ) : null}
 
+      <ReminderCard
+        userId={session.account.id}
+        role={session.role}
+        needs={needs}
+        showControls={home}
+      />
       <NeedComposer ref={composerRef} onAdd={onAdd} showBar={home} />
       {home && error ? <p className="banner">{error}</p> : null}
 

@@ -1,12 +1,19 @@
+import { useEffect } from "react";
 import { AdultHome } from "./components/AdultHome";
 import { AuthScreen } from "./components/AuthScreen";
 import { KidHome } from "./components/KidHome";
 import { OnboardingScreen } from "./components/OnboardingScreen";
 import { useAisle } from "./hooks/useAisle";
+import { pauseReminderDelivery } from "./lib/reminder";
 import { APP_VERSION_LABEL } from "./version";
 
 export function App() {
   const aisle = useAisle();
+
+  useEffect(() => {
+    if (aisle.status === "ready" && aisle.session?.role === "adult") return;
+    void pauseReminderDelivery();
+  }, [aisle.status, aisle.session?.role]);
 
   if (aisle.status === "loading") {
     return (

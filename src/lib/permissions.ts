@@ -25,6 +25,11 @@ export function canBrowseStoreRuns(role: Role | null): boolean {
   return role === "adult";
 }
 
+/** Locked: only adults get the 5pm open-items / store-run reminder. */
+export function canReceiveShoppingReminder(role: Role | null): boolean {
+  return role === "adult";
+}
+
 export function canMutateNeed(
   need: Need | undefined,
   viewerId: string,

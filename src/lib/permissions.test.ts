@@ -5,6 +5,7 @@ import {
   canBrowseHousehold,
   canBrowseStoreRuns,
   canManageHousehold,
+  canReceiveShoppingReminder,
   canMutateNeed,
   needsForViewer,
 } from "./permissions.ts";
@@ -63,6 +64,9 @@ describe("household helpers", () => {
     assert.equal(canBrowseStoreRuns("adult"), true);
     assert.equal(canBrowseStoreRuns("kid"), false);
     assert.equal(canBrowseStoreRuns(null), false);
+    assert.equal(canReceiveShoppingReminder("adult"), true);
+    assert.equal(canReceiveShoppingReminder("kid"), false);
+    assert.equal(canReceiveShoppingReminder(null), false);
   });
 
   it("labels another member’s item for adults", () => {
