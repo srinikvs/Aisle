@@ -1,8 +1,9 @@
 import { storeMeta } from "../data/catalogs";
-import type { Need, StoreId } from "../types";
+import { isBuiltinListId, type Need, type StoreId } from "../types";
 
-/** Costco sees every open need. Other stores honor list coverage and an optional pin. */
+/** Costco sees every open need from the four built-in lists. Custom lists stay off Store runs. */
 export function storeSeesNeed(storeId: StoreId, need: Need): boolean {
+  if (!isBuiltinListId(need.listId)) return false;
   const store = storeMeta(storeId);
   if (!store.covers.includes(need.listId)) return false;
   if (storeId === "costco") return true;

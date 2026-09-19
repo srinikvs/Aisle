@@ -1,6 +1,18 @@
-import type { ListId, ListMeta, StoreId, StoreMeta } from "../types";
+import {
+  isBuiltinListId,
+  type BuiltinListId,
+  type CustomList,
+  type ListId,
+  type ListMeta,
+  type StoreId,
+  type StoreMeta,
+} from "../types";
 
-export const LISTS: readonly ListMeta[] = [
+export interface BuiltinListMeta extends ListMeta {
+  id: BuiltinListId;
+}
+
+export const LISTS: readonly BuiltinListMeta[] = [
   {
     id: "grocery",
     title: "Grocery",
@@ -48,10 +60,16 @@ export const STORES: readonly StoreMeta[] = [
   },
 ] as const;
 
-export function listMeta(id: ListId): ListMeta {
-  const found = LISTS.find((list) => list.id === id);
-  if (!found) throw new Error(`Unknown list: ${id}`);
-  return found;
+export function listMeta(id: ListId, customLists: readonly CustomList[] = []): ListMeta {
+  const builtin = LISTS.find((list) => list.id === id);
+  if (builtin) return builtin;
+  const custom = customLists.find((list) => list.id === id);
+  if (custom) return custom;
+  throw new Error(`Unknown list: ${id}`);
+}
+
+export function allLists(customLists: readonly CustomList[] = []): ListMeta[] {
+  return [...LISTS, ...customLists];
 }
 
 export function storeMeta(id: StoreId): StoreMeta {
@@ -61,5 +79,5 @@ export function storeMeta(id: StoreId): StoreMeta {
 }
 
 export function storeCovers(storeId: StoreId, listId: ListId): boolean {
-  return storeMeta(storeId).covers.includes(listId);
+  return isBuiltinListId(listId) && storeMeta(storeId).covers.includes(listId);
 }

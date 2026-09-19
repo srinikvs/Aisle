@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import { Mic } from "lucide-react";
 import { parseNeeds } from "../lib/parser";
 import { createRecognizer, speechSupported, type SpeechStatus } from "../lib/speech";
-import type { DraftNeed, ListId } from "../types";
+import type { DraftNeed, ListId, ListMeta } from "../types";
 import { ConfirmSheet } from "./ConfirmSheet";
 
 export interface NeedComposerHandle {
@@ -11,13 +11,14 @@ export interface NeedComposerHandle {
 
 interface NeedComposerProps {
   onAdd: (drafts: DraftNeed[]) => void;
+  lists?: readonly ListMeta[];
   confirmLabel?: string;
   showBar?: boolean;
   hideStores?: boolean;
 }
 
 export const NeedComposer = forwardRef<NeedComposerHandle, NeedComposerProps>(
-  function NeedComposer({ onAdd, confirmLabel, showBar = true, hideStores = false }, ref) {
+  function NeedComposer({ onAdd, lists, confirmLabel, showBar = true, hideStores = false }, ref) {
     const [drafts, setDrafts] = useState<DraftNeed[] | null>(null);
     const [typing, setTyping] = useState(false);
     const [typeValue, setTypeValue] = useState("");
@@ -147,6 +148,7 @@ export const NeedComposer = forwardRef<NeedComposerHandle, NeedComposerProps>(
         {drafts ? (
           <ConfirmSheet
             drafts={drafts}
+            lists={lists}
             confirmLabel={confirmLabel}
             hideStores={hideStores}
             onChange={setDrafts}

@@ -1,34 +1,60 @@
+import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
-import { listMeta } from "../data/catalogs";
 import { needsForList } from "../lib/coverage";
-import type { ListId, Need } from "../types";
+import { isCustomListId } from "../lib/customLists";
+import type { ListReminderPref } from "../lib/reminder";
+import type { ListId, ListMeta, Need } from "../types";
+import { ListReminderCard } from "./ListReminderCard";
 import { NeedRow } from "./NeedRow";
 
 interface ListScreenProps {
-  listId: ListId;
+  list: ListMeta;
+  lists: readonly ListMeta[];
   needs: Need[];
+  reminder: ListReminderPref;
+  reminderBusy?: boolean;
+  reminderNote?: string | null;
   onBack: () => void;
   onToggle: (id: string) => void;
   onMove: (id: string, listId: ListId) => void;
   onRemove: (id: string) => void;
   onTyped: (text: string) => void;
+  onRename?: (title: string) => Promise<void>;
+  onDelete?: () => Promise<void>;
+  onReminderChange: (patch: Partial<ListReminderPref>) => void;
+  onReminderEnable: () => void;
+  onReminderDisable: () => void;
+  onReminderTryNow: () => void;
   addedByName?: (need: Need) => string | null;
 }
 
 export function ListScreen({
-  listId,
+  list,
+  lists,
   needs,
+  reminder,
+  reminderBusy,
+  reminderNote,
   onBack,
   onToggle,
   onMove,
   onRemove,
   onTyped,
+  onRename,
+  onDelete,
+  onReminderChange,
+  onReminderEnable,
+  onReminderDisable,
+  onReminderTryNow,
   addedByName,
 }: ListScreenProps) {
-  const list = listMeta(listId);
-  const items = needsForList(listId, needs);
+  const items = needsForList(list.id, needs);
   const open = items.filter((need) => !need.done);
   const done = items.filter((need) => need.done);
+  const custom = isCustomListId(list.id);
+  const [rename, setRename] = useState(list.title);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   return (
     <section>
@@ -43,6 +69,62 @@ export function ListScreen({
         placeholder={`Add to ${list.shortTitle.toLowerCase()}…`}
         onSubmit={onTyped}
       />
+      <ListReminderCard
+        listId={list.id}
+        pref={reminder}
+        busy={reminderBusy}
+        note={reminderNote}
+        onChange={onReminderChange}
+        onEnable={onReminderEnable}
+        onDisable={onReminderDisable}
+        onTryNow={onReminderTryNow}
+      />
+      {custom ? (
+        <div className="list-manage">
+          <form
+            className="type-box"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!onRename || !rename.trim() || rename.trim() === list.title) return;
+              setBusy(true);
+              void Promise.resolve(onRename(rename)).finally(() => setBusy(false));
+            }}
+          >
+            <input
+              value={rename}
+              onChange={(event) => setRename(event.target.value)}
+              aria-label="Rename list"
+              autoComplete="off"
+            />
+            <button type="submit" disabled={busy || !rename.trim()}>
+              Rename
+            </button>
+          </form>
+          {confirmDelete ? (
+            <div className="delete-confirm">
+              <p>Delete this list and its items? Grocery and Store runs stay as they are.</p>
+              <button
+                type="button"
+                className="linkish danger"
+                onClick={() => {
+                  if (!onDelete) return;
+                  setBusy(true);
+                  void Promise.resolve(onDelete()).finally(() => setBusy(false));
+                }}
+              >
+                Delete list
+              </button>
+              <button type="button" className="linkish" onClick={() => setConfirmDelete(false)}>
+                Keep it
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="linkish danger" onClick={() => setConfirmDelete(true)}>
+              Delete list
+            </button>
+          )}
+        </div>
+      ) : null}
       {open.length === 0 && done.length === 0 ? (
         <p className="empty">Nothing here yet. Speak a need or type one.</p>
       ) : null}
@@ -50,6 +132,7 @@ export function ListScreen({
         <NeedRow
           key={need.id}
           need={need}
+          lists={lists}
           addedByLabel={addedByName?.(need)}
           onToggle={onToggle}
           onMove={onMove}
@@ -61,6 +144,7 @@ export function ListScreen({
         <NeedRow
           key={need.id}
           need={need}
+          lists={lists}
           addedByLabel={addedByName?.(need)}
           onToggle={onToggle}
           onMove={onMove}

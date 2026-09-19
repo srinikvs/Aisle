@@ -1,6 +1,6 @@
 # Aisle
 
-Voice grocery / multi-list shopping assistant. Speak a need once; keep **Grocery**, **School supplies**, **Shopping**, and **Travel** as their own lists. Walking into Costco, Publix, or Office Depot? Aisle pulls what that store can cover.
+Voice grocery / multi-list shopping assistant. Speak a need once; keep **Grocery**, **School supplies**, **Shopping**, and **Travel** as their own lists, or add a named list of your own. Walking into Costco, Publix, or Office Depot? Aisle pulls what that store can cover.
 
 ## Hosts
 
@@ -24,6 +24,13 @@ npm run build:root
 ```
 
 Local preview of a root build: `npm run preview:root` after `npm run build:root`.
+
+## v1.2.0
+
+1. Adults can create **custom lists** beside the four built-ins (examples: “International travel to-do”, “Work to-do”). Rename or delete those lists; Grocery / School / Shopping / Travel and Store runs stay as they are.
+2. Each list — built-in or custom — can have its own reminder: time of day, days of the week, and an optional timezone. The v1.1.1 5pm shopping toggle migrates onto the Shopping list.
+3. Kids still only add items. They never see custom-list management, reminder controls, or Store runs.
+4. Demo persistence stays on this device: custom lists in `aisle-custom-lists-v1`, custom-list items in `aisle-custom-needs-v1` when cloud `list_id` cannot store them yet, reminders in `aisle-reminder-v2`. No new Supabase columns. Schema comments mark the cloud seam (`list_types` + free `needs.list_id`).
 
 ## v1.1.1
 
@@ -56,8 +63,8 @@ Local preview of a root build: `npm run preview:root` after `npm run build:root`
 
 | Role | What they can do |
 | --- | --- |
-| Adult | Full lists + store runs on the shared household. Invite / revoke by email. Optional 5pm shopping reminder. |
-| Kid | Add items. See and check off only their own items. No Family screen, no other lists, **no Store runs** (Costco / Publix / Office Depot UI is hidden entirely). No 5pm store-run reminder. |
+| Adult | Full lists + store runs on the shared household. Create / rename / delete custom lists. Per-list reminders. Invite / revoke by email. |
+| Kid | Add items. See and check off only their own items. No Family screen, no other lists, **no Store runs** (Costco / Publix / Office Depot UI is hidden entirely). No list management and no reminder controls. |
 
 Invite flow:
 
@@ -130,31 +137,35 @@ Playadda is the same without `BASE_PATH=/`. If these two variables are missing, 
 
 Pin an item to a store in the confirm sheet if you only want Publix or Office Depot to show it. Costco still sees every open need.
 
-## Daily shopping reminder
+## Custom lists and per-list reminders
 
-Adults see **5pm shopping reminder** on the home screen. **Turn on** asks for notification permission. Around **5:00 PM local**, Aisle reminds you to review open needs and Store runs (Costco / Publix / Office Depot). **Try now** sends a test notification without consuming the daily slot.
+Adults see **New list** on the Lists tab. Custom lists sit beside Grocery, School, Shopping, and Travel. Items on a custom list do **not** appear in Costco / Publix / Office Depot Store runs.
 
-Kids never get this control or Store-run wording. The household model is unchanged: reminders are a per-adult, on-device preference, not a Supabase row.
+Open any list to set a **list reminder**: time, days of the week, and an optional timezone (or this device’s local time). **Turn on** asks for notification permission. **Try now** sends a test notification without consuming that day’s slot.
+
+Kids never get list management or reminder controls. Reminders stay a per-adult, on-device preference (`aisle-reminder-v2`), not a Supabase row.
 
 ### Limitations
 
-Browsers cannot reliably wake a fully closed tab at 5:00 PM without a push server. The reminder fires when Aisle or its service worker is able to run around 5pm local.
+Browsers cannot reliably wake a fully closed tab at the reminder time without a push server. Each reminder fires when Aisle or its service worker is able to run around that list’s scheduled time.
 
-- Allow notifications for the site. If you deny permission, Aisle still keeps the toggle on and shows an in-app banner when the tab is open at or after 5pm (once per local day).
-- A timer runs while the app is open (including a background tab, until the browser suspends it). Opening Aisle after 5pm still delivers that day’s nudge if it has not already fired.
-- The service worker is registered at Vite `base` (`/aisle/sw.js` on Playadda, `/sw.js` on Sarukulu). Installed Chromium PWAs may also get periodic background checks; the clock is not exact.
+- Allow notifications for the site. If you deny permission, Aisle still keeps the toggle on and shows an in-app banner when the tab is open at or after the scheduled time (once per local day, in the reminder’s timezone).
+- A timer runs while the app is open (including a background tab, until the browser suspends it). Opening Aisle after a scheduled time still delivers that day’s nudge if it has not already fired.
+- The service worker is the same `sw.js` from v1.1.1, registered at Vite `base` (`/aisle/sw.js` on Playadda, `/sw.js` on Sarukulu). It now checks every enabled list schedule. Installed Chromium PWAs may also get periodic background checks; the clock is not exact.
 - iPhone: add Aisle to the Home Screen and allow notifications there. A regular Safari tab is limited.
-- Closing the browser or signing in as a kid pauses worker delivery. The adult toggle stays saved on that device.
+- Closing the browser or signing in as a kid pauses worker delivery. Adult schedules stay saved on that device.
 - `Try now` is the reliable way to confirm the Notification API works on a given phone.
+- Custom lists and their items persist in localStorage (demo backend, and an overlay when Supabase `needs.list_id` is still limited to the four built-ins). They do not sync across phones until the cloud seam is implemented.
 
 ## Try it
 
 1. Create an adult account and a household (import local lists if offered).
 2. Tap **Tap to speak a need** and say something like “milk, notebooks for school, sunscreen for the trip” — or **Type instead**.
 3. Confirm the sort (move an item to another list or store before adding).
-4. Turn on **5pm shopping reminder** and allow notifications. Use **Try now** to confirm delivery.
-5. Open **Family** and invite a kid email. Sign out, create that account, and confirm they only see items they add — and no reminder toggle.
-6. Open **Store runs** as an adult and compare Costco vs Publix vs Office Depot.
+4. Create a custom list, add an item, and confirm it does not show on Store runs.
+5. Open a list, turn on its reminder, allow notifications, and use **Try now**.
+6. Open **Family** and invite a kid email. Sign out, create that account, and confirm they only see items they add — no New list, no reminder controls, no Store runs.
+7. Open **Store runs** as an adult and compare Costco vs Publix vs Office Depot.
 
 Allow the microphone when asked. If the browser blocks speech (common in some in-app previews), type from the home pill or any list.
 

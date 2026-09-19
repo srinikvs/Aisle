@@ -6,6 +6,8 @@ import {
   canBrowseStoreRuns,
   canManageHousehold,
   canReceiveShoppingReminder,
+  canManageCustomLists,
+  canManageListReminders,
   canMutateNeed,
   needsForViewer,
 } from "./permissions.ts";
@@ -67,6 +69,12 @@ describe("household helpers", () => {
     assert.equal(canReceiveShoppingReminder("adult"), true);
     assert.equal(canReceiveShoppingReminder("kid"), false);
     assert.equal(canReceiveShoppingReminder(null), false);
+    assert.equal(canManageCustomLists("adult"), true);
+    assert.equal(canManageCustomLists("kid"), false);
+    assert.equal(canManageCustomLists(null), false);
+    assert.equal(canManageListReminders("adult"), true);
+    assert.equal(canManageListReminders("kid"), false);
+    assert.equal(canManageListReminders(null), false);
   });
 
   it("labels another member’s item for adults", () => {

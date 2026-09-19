@@ -43,6 +43,12 @@ create unique index if not exists invites_one_pending_per_email
   on public.invites (household_id, email)
   where status = 'pending';
 
+-- Cloud seam (v1.2): custom list types and per-list reminders stay in
+-- localStorage (`aisle-custom-lists-v1`, `aisle-custom-needs-v1`,
+-- `aisle-reminder-v2`) until these land:
+--   create table public.list_types (... household_id, title ...);
+--   alter table public.needs drop constraint ... and allow custom list_id;
+--   optional public.list_reminders (user_id, list_id, hour, days, timezone).
 create table if not exists public.needs (
   id uuid primary key default gen_random_uuid(),
   household_id uuid not null references public.households (id) on delete cascade,

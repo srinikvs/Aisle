@@ -1,9 +1,10 @@
 import { Check, Trash2 } from "lucide-react";
 import { LISTS, STORES } from "../data/catalogs";
-import type { ListId, Need, StoreId } from "../types";
+import type { ListId, ListMeta, Need, StoreId } from "../types";
 
 interface NeedRowProps {
   need: Need;
+  lists?: readonly ListMeta[];
   showList?: boolean;
   addedByLabel?: string | null;
   onToggle: (id: string) => void;
@@ -14,6 +15,7 @@ interface NeedRowProps {
 
 export function NeedRow({
   need,
+  lists = LISTS,
   showList,
   addedByLabel,
   onToggle,
@@ -36,7 +38,7 @@ export function NeedRow({
         <div>{need.name}</div>
         {showList ? (
           <div className="need-meta">
-            {LISTS.find((list) => list.id === need.listId)?.title}
+            {lists.find((list) => list.id === need.listId)?.title}
           </div>
         ) : null}
         {addedByLabel ? <div className="need-meta">Added by {addedByLabel}</div> : null}
@@ -48,7 +50,7 @@ export function NeedRow({
             value={need.listId}
             onChange={(event) => onMove(need.id, event.target.value as ListId)}
           >
-            {LISTS.map((list) => (
+            {lists.map((list) => (
               <option key={list.id} value={list.id}>
                 {list.shortTitle}
               </option>
