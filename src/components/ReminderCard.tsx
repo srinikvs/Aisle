@@ -1,62 +1,51 @@
 import { openCount } from "../lib/coverage";
-import { useShoppingReminder } from "../hooks/useShoppingReminder";
-import type { Need, Role } from "../types";
+import type { ReminderCopy } from "../lib/reminder";
+import type { Need } from "../types";
 
 interface ReminderCardProps {
-  userId: string;
-  role: Role | null;
+  enabledCount: number;
+  banner: ReminderCopy | null;
+  note?: string | null;
   needs: readonly Need[];
   showControls?: boolean;
+  onDismissBanner: () => void;
 }
 
-export function ReminderCard({ userId, role, needs, showControls = true }: ReminderCardProps) {
-  const reminder = useShoppingReminder(userId, role, needs);
-  if (!reminder.visible) return null;
-
+export function ReminderCard({
+  enabledCount,
+  banner,
+  note,
+  needs,
+  showControls = true,
+  onDismissBanner,
+}: ReminderCardProps) {
   return (
     <>
       {showControls ? (
         <div className="reminder-card">
           <div className="reminder-copy">
-            <strong>5pm shopping reminder</strong>
+            <strong>Per-list reminders</strong>
             <p>
-              Around 5:00 PM local, we’ll nudge you to review open items and store
-              runs. Kids never get this prompt.
+              Open any list to set a time, days, and optional timezone. Grocery
+              and Store runs stay the same — custom lists sit beside them.
             </p>
-            {reminder.note ? <p className="reminder-note">{reminder.note}</p> : null}
+            {note ? <p className="reminder-note">{note}</p> : null}
           </div>
           <div className="reminder-actions">
-            {reminder.enabled ? (
-              <>
-                <span className="role-badge">On</span>
-                <button type="button" className="linkish" onClick={() => void reminder.disable()}>
-                  Turn off
-                </button>
-                <button type="button" className="linkish" onClick={() => void reminder.tryNow()}>
-                  Try now
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                className="primary-btn compact"
-                onClick={() => void reminder.enable()}
-                disabled={reminder.busy}
-              >
-                {reminder.busy ? "…" : "Turn on"}
-              </button>
-            )}
+            <span className="role-badge">{enabledCount > 0 ? `On · ${enabledCount}` : "Off"}</span>
           </div>
         </div>
       ) : null}
-      {reminder.banner ? (
+      {banner ? (
         <div className="reminder-banner" role="status">
           <div>
-            <strong>{reminder.banner.title}</strong>
-            <p>{reminder.banner.body}</p>
-            {openCount(needs) > 0 ? <p>Open Store runs when you’re ready.</p> : null}
+            <strong>{banner.title}</strong>
+            <p>{banner.body}</p>
+            {openCount(needs) > 0 && (!banner.listId || banner.listId === "shopping") ? (
+              <p>Open Store runs when you’re ready.</p>
+            ) : null}
           </div>
-          <button type="button" className="linkish light" onClick={reminder.dismissBanner}>
+          <button type="button" className="linkish light" onClick={onDismissBanner}>
             Dismiss
           </button>
         </div>

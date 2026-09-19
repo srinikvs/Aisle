@@ -1,7 +1,7 @@
 {
   "name": "Aisle",
   "short_name": "Aisle",
-  "description": "Household lists and store runs. Adults can get a 5pm shopping reminder.",
+  "description": "Household lists and store runs. Adults can add custom lists and set per-list reminders.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

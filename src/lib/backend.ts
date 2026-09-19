@@ -1,4 +1,5 @@
 import type {
+  CustomList,
   DraftNeed,
   Invite,
   ListId,
@@ -31,6 +32,10 @@ export interface AisleBackend {
   listMembers(): Promise<Membership[]>;
   listInvites(): Promise<Invite[]>;
   listNeeds(): Promise<Need[]>;
+  listCustomLists(): Promise<CustomList[]>;
+  createCustomList(title: string, blurb?: string): Promise<CustomList>;
+  renameCustomList(id: string, title: string): Promise<CustomList>;
+  deleteCustomList(id: string): Promise<void>;
   addDrafts(drafts: readonly DraftNeed[]): Promise<Need[]>;
   toggleNeed(id: string): Promise<Need[]>;
   setNeedList(id: string, listId: ListId): Promise<Need[]>;
