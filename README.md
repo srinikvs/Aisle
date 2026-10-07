@@ -108,12 +108,21 @@ Example build steps (Sarukulu):
 export VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 export VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 npm ci
+npx playwright install --with-deps chromium
 npm test
+npm run test:e2e
 BASE_PATH=/ npm run build
 # rsync dist/
 ```
 
 Playadda is the same without `BASE_PATH=/`. If these two variables are missing, the built SPA runs in local demo mode and households will not sync between devices.
+
+`npm run test:e2e` does not read those secrets. Its local preview build clears `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, then signs up a guest in on-device demo mode. Set `CI=1` on the agent. To smoke a host that was built the same way (no Supabase env), point `BASE_URL` at the mount and Playwright will not start a preview server:
+
+```bash
+BASE_URL=https://playadda.duckdns.org/aisle/ npm run test:e2e
+BASE_URL=https://sarukulu.duckdns.org/ npm run test:e2e
+```
 
 ## Lists and stores
 
@@ -164,7 +173,9 @@ Vite 6 + React 19 + TypeScript. Speech uses the browser Web Speech API; parsing 
 
 ```bash
 npm install
-npm test
+npx playwright install --with-deps chromium
+npm test               # unit tests under src/lib
+npm run test:e2e       # Playwright pixel + desktop; local guest, no secrets
 npm run dev            # http://localhost:5173/aisle/
 BASE_PATH=/ npm run dev
                        # http://localhost:5173/

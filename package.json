@@ -10,7 +10,10 @@
     "build:root": "tsc -b && vite build --base /",
     "preview": "vite preview",
     "preview:root": "vite preview --base /",
-    "test": "tsx --test src/**/*.test.ts"
+    "test": "tsx --test src/**/*.test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:pixel": "playwright test --project=pixel",
+    "test:e2e:desktop": "playwright test --project=desktop"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
@@ -19,6 +22,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
