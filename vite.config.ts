@@ -29,6 +29,9 @@ function resolveBase(raw: string | undefined): string {
 
 const base = resolveBase(cliBase() ?? process.env.BASE_PATH);
 
+/** Public path Playwright uses for preview and BASE_URL (`/aisle/` or `/`). */
+export const appBase = base;
+
 export default defineConfig({
   base,
   plugins: [react()],
