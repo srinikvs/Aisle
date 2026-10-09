@@ -40,6 +40,13 @@ describe("store coverage", () => {
     assert.equal(storeSeesNeed("office-depot", pinned), false);
   });
 
+  it("custom list items never appear on Store runs", () => {
+    const custom = need({ listId: "custom-work-todo", name: "Stand-up notes" });
+    assert.equal(storeSeesNeed("costco", custom), false);
+    assert.equal(storeSeesNeed("publix", custom), false);
+    assert.equal(storeSeesNeed("office-depot", custom), false);
+  });
+
   it("starter data gives Costco 12 open needs", () => {
     const { needs } = createStarterState();
     assert.equal(openCount(needsForStore("costco", needs)), 12);

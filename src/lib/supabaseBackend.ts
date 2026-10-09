@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import type {
+  CustomList,
   DraftNeed,
   Invite,
   ListId,
@@ -9,9 +10,36 @@ import type {
   Session,
   StoreId,
 } from "../types";
+import { isBuiltinListId } from "../types";
 import type { AisleBackend } from "./backend";
-import { addDrafts } from "./mutations";
+import {
+  createCustomList,
+  deleteCustomList,
+  loadHouseholdCustomLists,
+  renameCustomList,
+  saveHouseholdCustomLists,
+} from "./customLists";
+import {
+  loadHouseholdCustomNeeds,
+  mergeHouseholdNeeds,
+  saveHouseholdCustomNeeds,
+} from "./customNeeds";
+import { addDrafts, removeNeed, setNeedList, toggleNeed } from "./mutations";
+import { canManageCustomLists, needsForViewer } from "./permissions";
 import { isValidEmail, normalizeEmail } from "./storage";
+
+function extrasStore(): Pick<Storage, "getItem" | "setItem"> {
+  if (typeof localStorage === "undefined") {
+    const map = new Map<string, string>();
+    return {
+      getItem: (key) => map.get(key) ?? null,
+      setItem: (key, value) => {
+        map.set(key, value);
+      },
+    };
+  }
+  return localStorage;
+}
 
 interface NeedRow {
   id: string;
@@ -116,13 +144,23 @@ export function createSupabaseBackend(
     return data.user;
   };
 
-  const currentNeeds = async (): Promise<Need[]> => {
+  const currentCloudNeeds = async (): Promise<Need[]> => {
     const { data, error } = await supabase
       .from("needs")
       .select("id, household_id, added_by, name, list_id, pinned_store, done, created_at")
       .order("created_at", { ascending: true });
     if (error) throw new Error(messageOf(error, "Could not load needs."));
     return (data as NeedRow[]).map(rowToNeed);
+  };
+
+  const currentNeeds = async (householdId?: string): Promise<Need[]> => {
+    const session = await loadSession((await currentUser()) ?? null);
+    const cloud = await currentCloudNeeds();
+    const hid = householdId ?? session?.household?.id;
+    if (!hid) return cloud;
+    const merged = mergeHouseholdNeeds(cloud, loadHouseholdCustomNeeds(hid, extrasStore()));
+    if (!session?.role) return merged;
+    return needsForViewer(merged, session.account.id, session.role);
   };
 
   const requireHousehold = async () => {
@@ -270,73 +308,217 @@ export function createSupabaseBackend(
     },
 
     async listNeeds() {
-      await requireHousehold();
-      return currentNeeds();
+      const session = await requireHousehold();
+      return currentNeeds(session.household!.id);
+    },
+
+    async listCustomLists() {
+      const session = await requireHousehold();
+      if (!canManageCustomLists(session.role)) return [];
+      return loadHouseholdCustomLists(session.household!.id, extrasStore());
+    },
+
+    async createCustomList(title, blurb = "") {
+      const session = await requireHousehold();
+      const householdId = session.household!.id;
+      const current = loadHouseholdCustomLists(householdId, extrasStore());
+      const next = createCustomList(current, title, session.role, blurb);
+      saveHouseholdCustomLists(householdId, next, extrasStore());
+      return next[next.length - 1] as CustomList;
+    },
+
+    async renameCustomList(id, title) {
+      const session = await requireHousehold();
+      const householdId = session.household!.id;
+      const current = loadHouseholdCustomLists(householdId, extrasStore());
+      const next = renameCustomList(current, id, title, session.role);
+      saveHouseholdCustomLists(householdId, next, extrasStore());
+      const renamed = next.find((list) => list.id === id);
+      if (!renamed) throw new Error("List not found.");
+      return renamed;
+    },
+
+    async deleteCustomList(id) {
+      const session = await requireHousehold();
+      const householdId = session.household!.id;
+      const current = loadHouseholdCustomLists(householdId, extrasStore());
+      saveHouseholdCustomLists(
+        householdId,
+        deleteCustomList(current, id, session.role),
+        extrasStore(),
+      );
+      const overlay = loadHouseholdCustomNeeds(householdId, extrasStore());
+      saveHouseholdCustomNeeds(
+        householdId,
+        overlay.filter((need) => need.listId !== id),
+        extrasStore(),
+      );
     },
 
     async addDrafts(drafts: readonly DraftNeed[]) {
       const session = await requireHousehold();
-      const next = addDrafts({ version: 1, needs: [] }, drafts, session.account.id);
-      if (next.needs.length === 0) return currentNeeds();
-      const { error } = await supabase.from("needs").insert(
-        next.needs.map((need) => ({
-          household_id: session.household!.id,
-          added_by: session.account.id,
-          name: need.name,
-          list_id: need.listId,
-          pinned_store: need.pinnedStore,
-          done: false,
-        })),
-      );
-      if (error) throw new Error(messageOf(error, "Could not add items."));
-      return currentNeeds();
+      const householdId = session.household!.id;
+      const builtinDrafts = drafts.filter((draft) => isBuiltinListId(draft.listId));
+      const customDrafts = drafts.filter((draft) => !isBuiltinListId(draft.listId));
+      if (builtinDrafts.length > 0) {
+        const next = addDrafts({ version: 1, needs: [] }, builtinDrafts, session.account.id);
+        if (next.needs.length > 0) {
+          const { error } = await supabase.from("needs").insert(
+            next.needs.map((need) => ({
+              household_id: householdId,
+              added_by: session.account.id,
+              name: need.name,
+              list_id: need.listId,
+              pinned_store: need.pinnedStore,
+              done: false,
+            })),
+          );
+          if (error) throw new Error(messageOf(error, "Could not add items."));
+        }
+      }
+      if (customDrafts.length > 0) {
+        const overlay = loadHouseholdCustomNeeds(householdId, extrasStore());
+        const next = addDrafts({ version: 1, needs: overlay }, customDrafts, session.account.id);
+        saveHouseholdCustomNeeds(householdId, next.needs, extrasStore());
+      }
+      return currentNeeds(householdId);
     },
 
     async toggleNeed(id) {
-      const needs = await currentNeeds();
+      const session = await requireHousehold();
+      const householdId = session.household!.id;
+      const overlay = loadHouseholdCustomNeeds(householdId, extrasStore());
+      if (overlay.some((need) => need.id === id)) {
+        const next = toggleNeed({ version: 1, needs: overlay }, id);
+        saveHouseholdCustomNeeds(householdId, next.needs, extrasStore());
+        return currentNeeds(householdId);
+      }
+      const needs = await currentCloudNeeds();
       const target = needs.find((need) => need.id === id);
       if (!target) throw new Error("You can only change items you added.");
       const { error } = await supabase.from("needs").update({ done: !target.done }).eq("id", id);
       if (error) throw new Error(messageOf(error, "You can only change items you added."));
-      return currentNeeds();
+      return currentNeeds(householdId);
     },
 
     async setNeedList(id, listId) {
-      const { error } = await supabase.from("needs").update({ list_id: listId }).eq("id", id);
+      const session = await requireHousehold();
+      const householdId = session.household!.id;
+      const overlay = loadHouseholdCustomNeeds(householdId, extrasStore());
+      const overlayTarget = overlay.find((need) => need.id === id);
+      if (overlayTarget) {
+        if (!isBuiltinListId(listId)) {
+          saveHouseholdCustomNeeds(
+            householdId,
+            setNeedList({ version: 1, needs: overlay }, id, listId).needs,
+            extrasStore(),
+          );
+          return currentNeeds(householdId);
+        }
+        const { error } = await supabase.from("needs").insert({
+          household_id: householdId,
+          added_by: overlayTarget.addedBy,
+          name: overlayTarget.name,
+          list_id: listId,
+          pinned_store: overlayTarget.pinnedStore,
+          done: overlayTarget.done,
+          created_at: new Date(overlayTarget.createdAt).toISOString(),
+        });
+        if (error) throw new Error(messageOf(error, "You can only change items you added."));
+        saveHouseholdCustomNeeds(
+          householdId,
+          removeNeed({ version: 1, needs: overlay }, id).needs,
+          extrasStore(),
+        );
+        return currentNeeds(householdId);
+      }
+      if (isBuiltinListId(listId)) {
+        const { error } = await supabase.from("needs").update({ list_id: listId }).eq("id", id);
+        if (error) throw new Error(messageOf(error, "You can only change items you added."));
+        return currentNeeds(householdId);
+      }
+      const cloud = await currentCloudNeeds();
+      const target = cloud.find((need) => need.id === id);
+      if (!target) throw new Error("You can only change items you added.");
+      const { error } = await supabase.from("needs").delete().eq("id", id);
       if (error) throw new Error(messageOf(error, "You can only change items you added."));
-      return currentNeeds();
+      saveHouseholdCustomNeeds(
+        householdId,
+        [...overlay, { ...target, listId }],
+        extrasStore(),
+      );
+      return currentNeeds(householdId);
     },
 
     async setNeedPin(id, storeId) {
+      const session = await requireHousehold();
+      const householdId = session.household!.id;
+      const overlay = loadHouseholdCustomNeeds(householdId, extrasStore());
+      if (overlay.some((need) => need.id === id)) {
+        saveHouseholdCustomNeeds(
+          householdId,
+          overlay.map((need) => (need.id === id ? { ...need, pinnedStore: storeId } : need)),
+          extrasStore(),
+        );
+        return currentNeeds(householdId);
+      }
       const { error } = await supabase.from("needs").update({ pinned_store: storeId }).eq("id", id);
       if (error) throw new Error(messageOf(error, "You can only change items you added."));
-      return currentNeeds();
+      return currentNeeds(householdId);
     },
 
     async removeNeed(id) {
+      const session = await requireHousehold();
+      const householdId = session.household!.id;
+      const overlay = loadHouseholdCustomNeeds(householdId, extrasStore());
+      if (overlay.some((need) => need.id === id)) {
+        saveHouseholdCustomNeeds(
+          householdId,
+          removeNeed({ version: 1, needs: overlay }, id).needs,
+          extrasStore(),
+        );
+        return currentNeeds(householdId);
+      }
       const { error } = await supabase.from("needs").delete().eq("id", id);
       if (error) throw new Error(messageOf(error, "You can only change items you added."));
-      return currentNeeds();
+      return currentNeeds(householdId);
     },
 
     async importNeeds(needs) {
       const session = await requireHousehold();
       if (session.role !== "adult") throw new Error("Only adults can manage the household.");
-      const rows = needs
-        .filter((need) => need.name.trim().length > 0)
-        .map((need) => ({
-          household_id: session.household!.id,
-          added_by: session.account.id,
-          name: need.name,
-          list_id: need.listId,
-          pinned_store: need.pinnedStore,
-          done: need.done,
-          created_at: new Date(need.createdAt).toISOString(),
-        }));
-      if (rows.length === 0) return currentNeeds();
-      const { error } = await supabase.from("needs").insert(rows);
-      if (error) throw new Error(messageOf(error, "Could not import items."));
-      return currentNeeds();
+      const householdId = session.household!.id;
+      const builtin = needs.filter((need) => need.name.trim().length > 0 && isBuiltinListId(need.listId));
+      const custom = needs.filter((need) => need.name.trim().length > 0 && !isBuiltinListId(need.listId));
+      if (builtin.length > 0) {
+        const { error } = await supabase.from("needs").insert(
+          builtin.map((need) => ({
+            household_id: householdId,
+            added_by: session.account.id,
+            name: need.name,
+            list_id: need.listId,
+            pinned_store: need.pinnedStore,
+            done: need.done,
+            created_at: new Date(need.createdAt).toISOString(),
+          })),
+        );
+        if (error) throw new Error(messageOf(error, "Could not import items."));
+      }
+      if (custom.length > 0) {
+        const overlay = loadHouseholdCustomNeeds(householdId, extrasStore());
+        saveHouseholdCustomNeeds(
+          householdId,
+          [
+            ...overlay,
+            ...custom.map((need) => ({
+              ...need,
+              addedBy: session.account.id,
+            })),
+          ],
+          extrasStore(),
+        );
+      }
+      return currentNeeds(householdId);
     },
   };
 }

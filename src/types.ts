@@ -1,5 +1,11 @@
 export const LIST_IDS = ["grocery", "school", "shopping", "travel"] as const;
-export type ListId = (typeof LIST_IDS)[number];
+export type BuiltinListId = (typeof LIST_IDS)[number];
+/** Built-in grocery / school / shopping / travel, or a custom list id (`custom-…`). */
+export type ListId = string;
+
+export function isBuiltinListId(value: string): value is BuiltinListId {
+  return (LIST_IDS as readonly string[]).includes(value);
+}
 
 export const STORE_IDS = ["costco", "publix", "office-depot"] as const;
 export type StoreId = (typeof STORE_IDS)[number];
@@ -73,9 +79,14 @@ export interface ListMeta {
   blurb: string;
 }
 
+/** Adult-created list that sits beside the four built-in lists. */
+export interface CustomList extends ListMeta {
+  createdAt: number;
+}
+
 export interface StoreMeta {
   id: StoreId;
   title: string;
   blurb: string;
-  covers: readonly ListId[];
+  covers: readonly BuiltinListId[];
 }

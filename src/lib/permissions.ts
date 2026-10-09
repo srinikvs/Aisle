@@ -25,8 +25,18 @@ export function canBrowseStoreRuns(role: Role | null): boolean {
   return role === "adult";
 }
 
-/** Locked: only adults get the 5pm open-items / store-run reminder. */
+/** Locked: only adults get list reminders (and the old 5pm shopping nudge). */
 export function canReceiveShoppingReminder(role: Role | null): boolean {
+  return role === "adult";
+}
+
+/** Locked: kids cannot create, rename, or delete lists. */
+export function canManageCustomLists(role: Role | null): boolean {
+  return role === "adult";
+}
+
+/** Locked: kids never see or change per-list reminder controls. */
+export function canManageListReminders(role: Role | null): boolean {
   return role === "adult";
 }
 

@@ -74,6 +74,7 @@ export function App() {
     <AdultHome
       session={aisle.session}
       needs={aisle.needs}
+      customLists={aisle.customLists}
       members={aisle.members}
       invites={aisle.invites}
       error={aisle.error}
@@ -82,6 +83,9 @@ export function App() {
       onToggle={aisle.toggle}
       onMove={aisle.move}
       onRemove={aisle.remove}
+      onCreateList={aisle.createList}
+      onRenameList={aisle.renameList}
+      onDeleteList={aisle.deleteList}
       onInvite={aisle.inviteMember}
       onRevoke={aisle.revokeInvite}
       onSignOut={() => void aisle.signOut()}

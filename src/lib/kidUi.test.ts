@@ -36,9 +36,20 @@ describe("kid store-run lock", () => {
     assert.equal(/5pm|notification/i.test(src), false);
   });
 
-  it("only AdultHome mounts the shopping reminder", () => {
+  it("only AdultHome mounts list reminders and custom list management", () => {
     const src = source("../components/AdultHome.tsx");
     assert.match(src, /ReminderCard/);
     assert.match(src, /showControls=\{home\}/);
+    assert.match(src, /NewListSheet/);
+    assert.match(src, /useListReminders/);
+    assert.match(src, /onCreateList/);
+  });
+
+  it("KidHome never mounts custom list or reminder controls", () => {
+    const src = source("../components/KidHome.tsx");
+    assert.equal(src.includes("NewListSheet"), false);
+    assert.equal(src.includes("ListReminderCard"), false);
+    assert.equal(src.includes("createCustomList"), false);
+    assert.equal(src.includes("useListReminders"), false);
   });
 });

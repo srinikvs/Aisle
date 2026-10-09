@@ -5,15 +5,21 @@ import { fileURLToPath } from "node:url";
 import { canReceiveShoppingReminder } from "./permissions.ts";
 import {
   REMINDER_STORAGE_KEY,
+  REMINDER_STORAGE_KEY_V1,
+  emptyListReminderPref,
   emptyReminderPref,
+  loadReminderMap,
   loadReminderPref,
   localDateKey,
+  markListReminderFired,
   markReminderFired,
   nextReminderAt,
   parseReminderStore,
   reminderCopy,
   reminderWorkerUrl,
+  saveReminderMap,
   saveReminderPref,
+  shouldFireListReminder,
   shouldFireReminder,
 } from "./reminder.ts";
 
@@ -63,6 +69,14 @@ describe("nextReminderAt", () => {
     assert.equal(evening.getDate(), 13);
     assert.equal(evening.getHours(), 17);
   });
+
+  it("skips days that are not selected", () => {
+    // Saturday 12 Sep 2026; next Monday is the 14th.
+    const next = nextReminderAt(at("2026-09-12T09:00:00"), 17, 0, [1]);
+    assert.equal(next.getDay(), 1);
+    assert.equal(next.getDate(), 14);
+    assert.equal(next.getHours(), 17);
+  });
 });
 
 describe("shouldFireReminder", () => {
@@ -88,6 +102,42 @@ describe("shouldFireReminder", () => {
     assert.equal(fired.lastFiredDate, localDateKey(now));
     assert.equal(shouldFireReminder(now, fired, "adult"), false);
     assert.equal(shouldFireReminder(at("2026-09-13T17:05:00"), fired, "adult"), true);
+  });
+});
+
+describe("shouldFireListReminder", () => {
+  const daily = {
+    ...emptyListReminderPref(),
+    enabled: true,
+  };
+
+  it("is adults only and honors enabled + days", () => {
+    assert.equal(shouldFireListReminder(at("2026-09-12T17:01:00"), daily, "kid"), false);
+    assert.equal(
+      shouldFireListReminder(at("2026-09-12T17:01:00"), { ...daily, enabled: false }, "adult"),
+      false,
+    );
+    assert.equal(
+      shouldFireListReminder(at("2026-09-12T17:01:00"), { ...daily, daysOfWeek: [1] }, "adult"),
+      false,
+    );
+    assert.equal(
+      shouldFireListReminder(at("2026-09-14T17:01:00"), { ...daily, daysOfWeek: [1] }, "adult"),
+      true,
+    );
+  });
+
+  it("matches an optional timezone", () => {
+    const pref = {
+      ...daily,
+      timezone: "America/New_York",
+    };
+    // 21:00 UTC is 17:00 EDT on 12 Sep 2026 (Saturday).
+    assert.equal(shouldFireListReminder(new Date("2026-09-12T21:00:00.000Z"), pref, "adult"), true);
+    assert.equal(shouldFireListReminder(new Date("2026-09-12T20:59:00.000Z"), pref, "adult"), false);
+    const fired = markListReminderFired(pref, new Date("2026-09-12T21:00:00.000Z"));
+    assert.equal(fired.lastFiredDate, "2026-09-12");
+    assert.equal(shouldFireListReminder(new Date("2026-09-12T21:30:00.000Z"), fired, "adult"), false);
   });
 });
 
@@ -120,6 +170,34 @@ describe("reminder preference store", () => {
     assert.deepEqual(parseReminderStore("not-json"), {});
     assert.deepEqual(parseReminderStore('{"x":{"enabled":"yes"}}'), {});
   });
+
+  it("migrates the v1.1.1 5pm shopping toggle to the shopping list", () => {
+    const storage = memory({
+      [REMINDER_STORAGE_KEY_V1]: JSON.stringify({
+        "adult-1": { enabled: true, lastFiredDate: "2026-09-12" },
+      }),
+    });
+    const map = loadReminderMap("adult-1", storage);
+    assert.equal(map.shopping?.enabled, true);
+    assert.equal(map.shopping?.hour, 17);
+    assert.equal(map.shopping?.lastFiredDate, "2026-09-12");
+    saveReminderMap(
+      "adult-1",
+      {
+        grocery: {
+          ...emptyListReminderPref(),
+          enabled: true,
+          hour: 8,
+          minute: 30,
+          daysOfWeek: [1, 2, 3, 4, 5],
+          timezone: "UTC",
+        },
+      },
+      storage,
+    );
+    assert.equal(loadReminderMap("adult-1", storage).grocery?.hour, 8);
+    assert.equal(loadReminderMap("adult-1", storage).shopping, undefined);
+  });
 });
 
 describe("reminder worker url", () => {
@@ -134,5 +212,8 @@ describe("reminder worker url", () => {
     assert.equal(sw.includes("/aisle/"), false);
     assert.match(sw, /periodicsync/);
     assert.match(sw, /AISLE_REMINDER_STATE/);
+    assert.match(sw, /schedules/);
+    assert.match(sw, /daysOfWeek/);
+    assert.match(sw, /timezone/);
   });
 });

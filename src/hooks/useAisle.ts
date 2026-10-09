@@ -7,6 +7,7 @@ import {
   wasLegacyImported,
 } from "../lib/storage";
 import type {
+  CustomList,
   DraftNeed,
   Invite,
   ListId,
@@ -28,6 +29,7 @@ export function useAisle() {
   const [status, setStatus] = useState<AisleStatus>("loading");
   const [session, setSession] = useState<Session | null>(null);
   const [needs, setNeeds] = useState<Need[]>([]);
+  const [customLists, setCustomLists] = useState<CustomList[]>([]);
   const [members, setMembers] = useState<Membership[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +40,7 @@ export function useAisle() {
     setError(null);
     if (!next) {
       setNeeds([]);
+      setCustomLists([]);
       setMembers([]);
       setInvites([]);
       setStatus("signed-out");
@@ -45,17 +48,20 @@ export function useAisle() {
     }
     if (!next.household) {
       setNeeds([]);
+      setCustomLists([]);
       setMembers([]);
       setInvites([]);
       setStatus("needs-household");
       return;
     }
-    const [listed, householdMembers, pending] = await Promise.all([
+    const [listed, lists, householdMembers, pending] = await Promise.all([
       api.listNeeds(),
+      next.role === "adult" ? api.listCustomLists() : Promise.resolve([]),
       next.role === "adult" ? api.listMembers() : api.listMembers().catch(() => []),
       next.role === "adult" ? api.listInvites() : Promise.resolve([]),
     ]);
     setNeeds(listed);
+    setCustomLists(lists);
     setMembers(householdMembers);
     setInvites(pending);
     setStatus("ready");
@@ -235,6 +241,53 @@ export function useAisle() {
     [mutateNeeds],
   );
 
+  const createList = useCallback(
+    async (title: string, blurb?: string) => {
+      if (!backend) return;
+      try {
+        const created = await backend.createCustomList(title, blurb);
+        setCustomLists(await backend.listCustomLists());
+        setError(null);
+        return created;
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "Could not create the list.");
+        throw caught;
+      }
+    },
+    [backend],
+  );
+
+  const renameList = useCallback(
+    async (id: string, title: string) => {
+      if (!backend) return;
+      try {
+        await backend.renameCustomList(id, title);
+        setCustomLists(await backend.listCustomLists());
+        setError(null);
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "Could not rename the list.");
+        throw caught;
+      }
+    },
+    [backend],
+  );
+
+  const deleteList = useCallback(
+    async (id: string) => {
+      if (!backend) return;
+      try {
+        await backend.deleteCustomList(id);
+        setCustomLists(await backend.listCustomLists());
+        setNeeds(await backend.listNeeds());
+        setError(null);
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "Could not delete the list.");
+        throw caught;
+      }
+    },
+    [backend],
+  );
+
   const labelFor = useCallback(
     (need: Need) =>
       session ? addedByLabel(need.addedBy, session.account.id, members) : null,
@@ -249,6 +302,7 @@ export function useAisle() {
     status,
     session,
     needs,
+    customLists,
     members,
     invites,
     error,
@@ -267,6 +321,9 @@ export function useAisle() {
     move,
     pin,
     remove,
+    createList,
+    renameList,
+    deleteList,
     labelFor,
   };
 }

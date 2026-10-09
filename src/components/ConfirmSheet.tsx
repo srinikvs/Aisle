@@ -1,8 +1,9 @@
 import { LISTS, STORES } from "../data/catalogs";
-import type { DraftNeed, ListId, StoreId } from "../types";
+import type { DraftNeed, ListId, ListMeta, StoreId } from "../types";
 
 interface ConfirmSheetProps {
   drafts: DraftNeed[];
+  lists?: readonly ListMeta[];
   onChange: (drafts: DraftNeed[]) => void;
   onCancel: () => void;
   onConfirm: () => void;
@@ -13,6 +14,7 @@ interface ConfirmSheetProps {
 
 export function ConfirmSheet({
   drafts,
+  lists = LISTS,
   onChange,
   onCancel,
   onConfirm,
@@ -53,7 +55,7 @@ export function ConfirmSheet({
                   update(draft.key, { listId: event.target.value as ListId })
                 }
               >
-                {LISTS.map((list) => (
+                {lists.map((list) => (
                   <option key={list.id} value={list.id}>
                     {list.title}
                   </option>

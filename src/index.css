@@ -704,6 +704,89 @@ button:disabled {
   flex: 0 0 auto;
 }
 
+.tile.new-list {
+  border: 1.5px dashed rgba(28, 25, 21, 0.18);
+  background: transparent;
+  box-shadow: none;
+}
+
+.reminder-card.stack-card {
+  margin-top: 16px;
+  flex-direction: column;
+}
+
+.reminder-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.reminder-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.reminder-fields input,
+.reminder-fields select {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 8px 10px;
+  color: var(--ink);
+}
+
+.day-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+
+.day-chip {
+  min-width: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--pill-track);
+  color: var(--muted);
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.day-chip.on {
+  background: var(--forest);
+  color: #f7f3ea;
+}
+
+.reminder-actions.row {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.list-manage {
+  margin: 8px 0 16px;
+}
+
+.delete-confirm {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.delete-confirm p {
+  margin: 0 0 8px;
+}
+
+.linkish.danger {
+  color: var(--danger);
+}
+
 @media (max-width: 380px) {
   .brand h1 {
     font-size: 44px;

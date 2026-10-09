@@ -1,5 +1,6 @@
 import type {
   Account,
+  CustomList,
   Household,
   Invite,
   ListId,
@@ -11,13 +12,20 @@ import type {
 } from "../types";
 import type { AisleBackend, KvStore } from "./backend";
 import {
+  createCustomList,
+  deleteCustomList,
+  loadHouseholdCustomLists,
+  renameCustomList,
+  saveHouseholdCustomLists,
+} from "./customLists";
+import {
   addDrafts,
   removeNeed,
   setNeedList,
   setNeedPin,
   toggleNeed,
 } from "./mutations";
-import { canManageHousehold, canMutateNeed, needsForViewer } from "./permissions";
+import { canManageCustomLists, canManageHousehold, canMutateNeed, needsForViewer } from "./permissions";
 import { isValidEmail, newId, newNeedId, normalizeEmail } from "./storage";
 
 export const LOCAL_DB_KEY = "aisle-accounts-v1";
@@ -375,6 +383,52 @@ export function createLocalBackend(store: KvStore = defaultStore()): AisleBacken
 
     async listNeeds() {
       return withDb((db) => visibleNeeds(db, requireUser(db)));
+    },
+
+    async listCustomLists() {
+      return withDb((db) => {
+        const user = requireUser(db);
+        const membership = requireMembership(db, user);
+        if (!canManageCustomLists(membership.role)) return [];
+        return loadHouseholdCustomLists(membership.householdId, store);
+      });
+    },
+
+    async createCustomList(title, blurb = "") {
+      return withDb((db) => {
+        const user = requireUser(db);
+        const membership = requireMembership(db, user);
+        const current = loadHouseholdCustomLists(membership.householdId, store);
+        const next = createCustomList(current, title, membership.role, blurb);
+        saveHouseholdCustomLists(membership.householdId, next, store);
+        return next[next.length - 1] as CustomList;
+      });
+    },
+
+    async renameCustomList(id, title) {
+      return withDb((db) => {
+        const user = requireUser(db);
+        const membership = requireMembership(db, user);
+        const current = loadHouseholdCustomLists(membership.householdId, store);
+        const next = renameCustomList(current, id, title, membership.role);
+        saveHouseholdCustomLists(membership.householdId, next, store);
+        const renamed = next.find((list) => list.id === id);
+        if (!renamed) throw new Error("List not found.");
+        return renamed;
+      });
+    },
+
+    async deleteCustomList(id) {
+      return withDb((db) => {
+        const user = requireUser(db);
+        const membership = requireMembership(db, user);
+        const current = loadHouseholdCustomLists(membership.householdId, store);
+        const next = deleteCustomList(current, id, membership.role);
+        saveHouseholdCustomLists(membership.householdId, next, store);
+        db.needs = db.needs.filter(
+          (need) => need.householdId !== membership.householdId || need.listId !== id,
+        );
+      });
     },
 
     async addDrafts(drafts) {
